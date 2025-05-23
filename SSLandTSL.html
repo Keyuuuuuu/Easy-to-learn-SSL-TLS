@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSL/TLS Interactive Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .demo-section {
+            padding: 30px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .demo-section:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            border-left: 5px solid #4facfe;
+        }
+
+        .demo-box {
+            background: #fff;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+        }
+
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .key-display {
+            font-family: 'Courier New', monospace;
+            background: #f1f3f4;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #34a853;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+
+        .encrypted-text {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .communication-flow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .participant {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            min-width: 150px;
+            margin: 10px;
+        }
+
+        .arrow {
+            font-size: 2em;
+            color: #4facfe;
+            margin: 0 10px;
+        }
+
+        .log-container {
+            background: #000;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-radius: 10px 10px 0 0;
+            overflow: hidden;
+        }
+
+        .tab {
+            padding: 15px 25px;
+            background: #e9ecef;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            background: #4facfe;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 0 0 10px 10px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .communication-flow {
+                flex-direction: column;
+            }
+
+            .arrow {
+                transform: rotate(90deg);
+            }
+
+            .participant {
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 SSL/TLS Interactive Demo</h1>
+            <p>Understanding Network Security Through Code and Animation</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('certificate')">🆔 Digital Certificate</button>
+            <button class="tab" onclick="showTab('asymmetric')">🔑 Asymmetric Encryption</button>
+            <button class="tab" onclick="showTab('symmetric')">📖 Symmetric Encryption</button>
+            <button class="tab" onclick="showTab('hash')">🛡️ Digital Signature</button>
+            <button class="tab" onclick="showTab('handshake')">🤝 Complete Handshake</button>
+        </div>
+
+        <!-- Digital Certificate Demo -->
+        <div id="certificate" class="tab-content active">
+            <div class="demo-section">
+                <h2 class="section-title">🆔 Digital Certificate - Website's ID Card</h2>
+
+                <div class="step-container">
+                    <h3>📋 Simulated Website Certificate</h3>
+                    <div class="demo-box">
+                        <div id="certificateDisplay">
+                            <p><strong>Certificate not generated yet. Click the button below to view the website's ID
+                                    card</strong></p>
+                        </div>
+                        <button class="button" onclick="generateCertificate()">🆔 View Website Certificate</button>
+                        <button class="button" onclick="verifyCertificate()">✅ Verify Certificate Authenticity</button>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <h3>🔍 Certificate Verification Process</h3>
+                    <div id="verificationResult"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Asymmetric Encryption Demo -->
+        <div id="asymmetric" class="tab-content">
+            <div class="demo-section">
+                <h2 class="section-title">🔑 Asymmetric Encryption - Magic Key Pair</h2>
+
+                <div class="step-container">
+                    <h3>🎯 Generate Magic Key Pair</h3>
+                    <div class="demo-box">
+                        <button class="button" onclick="generateKeyPair()">🔑 Generate Key Pair</button>
+                        <div id="keyPairDisplay"></div>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <h3>🔐 Encrypt Secret Message with Public Key</h3>
+                    <div class="demo-box">
+                        <input type="text" id="secretMessage" placeholder="Enter your secret message to encrypt"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
+                        <button class="button" onclick="encryptWithPublicKey()">🔒 Encrypt with Public Key</button>
+                        <div id="encryptedMessage"></div>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <h3>🔓 Decrypt with Private Key</h3>
+                    <div class="demo-box">
+                        <button class="button" onclick="decryptWithPrivateKey()">🔑 Decrypt with Private Key</button>
+                        <div id="decryptedMessage"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Symmetric Encryption Demo -->
+        <div id="symmetric" class="tab-content">
+            <div class="demo-section">
+                <h2 class="section-title">📖 Symmetric Encryption - Shared Secret Key</h2>
+
+                <div class="step-container">
+                    <h3>📚 Generate Secret Key</h3>
+                    <div class="demo-box">
+                        <button class="button" onclick="generateSymmetricKey()">📖 Generate Secret Key</button>
+                        <div id="symmetricKeyDisplay"></div>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <h3>⚡ Fast Encryption of Large Data</h3>
+                    <div class="demo-box">
+                        <textarea id="largeData" placeholder="Enter large amount of data to transmit..."
+                            style="width: 100%; height: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;"></textarea>
+                        <button class="button" onclick="symmetricEncrypt()">⚡ Fast Encrypt</button>
+                        <button class="button" onclick="symmetricDecrypt()">⚡ Fast Decrypt</button>
+                        <div id="symmetricResult"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Digital Signature Demo -->
+        <div id="hash" class="tab-content">
+            <div class="demo-section">
+                <h2 class="section-title">🛡️ Digital Signature - Anti-tamper Seal</h2>
+
+                <div class="step-container">
+                    <h3>👆 Generate Data Fingerprint</h3>
+                    <div class="demo-box">
+                        <input type="text" id="dataToHash" placeholder="Enter any data"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
+                        <button class="button" onclick="generateHash()">👆 Generate Fingerprint</button>
+                        <div id="hashResult"></div>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <h3>🖊️ Digital Signature Process</h3>
+                    <div class="demo-box">
+                        <button class="button" onclick="createDigitalSignature()">🖊️ Create Digital Signature</button>
+                        <button class="button" onclick="verifyDigitalSignature()">✅ Verify Signature</button>
+                        <div id="signatureResult"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Complete Handshake Demo -->
+        <div id="handshake" class="tab-content">
+            <div class="demo-section">
+                <h2 class="section-title">🤝 SSL Handshake - Complete Security Flow</h2>
+
+                <div class="communication-flow">
+                    <div class="participant">
+                        <h3>🌐 Browser</h3>
+                        <p>(You)</p>
+                    </div>
+                    <div class="arrow">⟷</div>
+                    <div class="participant">
+                        <h3>🏦 Web Server</h3>
+                        <p>(Bank)</p>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <h3>🚀 Start SSL Handshake Process</h3>
+                    <div class="demo-box">
+                        <button class="button" onclick="startHandshake()">🤝 Start Handshake</button>
+                        <button class="button" onclick="resetHandshake()">🔄 Reset Demo</button>
+                    </div>
+                </div>
+
+                <div class="log-container" id="handshakeLog">
+                    <div>Waiting for handshake to begin...</div>
+                </div>
+
+                <div class="step-container">
+                    <h3>🔐 Secure Communication Test</h3>
+                    <div class="demo-box">
+                        <input type="text" id="secureMessage" placeholder="Enter message to transmit securely"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
+                        <button class="button" onclick="sendSecureMessage()" disabled id="sendButton">📨 Send Secure
+                            Message</button>
+                        <div id="secureResult"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables to store demo data
+        let demoData = {
+            certificate: null,
+            keyPair: { public: null, private: null },
+            symmetricKey: null,
+            encryptedData: null,
+            handshakeComplete: false,
+            sessionKey: null
+        };
+
+        // Tab switching
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // 1. Digital Certificate Demo
+        function generateCertificate() {
+            const certificate = {
+                website: "https://secure-bank.com",
+                company: "Secure Bank Corporation",
+                issuer: "Trusted Certificate Authority (CA)",
+                validFrom: "2024-01-01",
+                validTo: "2025-12-31",
+                publicKey: "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC...",
+                signature: "30450220123456789abcdef..."
+            };
+
+            demoData.certificate = certificate;
+
+            document.getElementById('certificateDisplay').innerHTML = `
+                <div class="key-display">
+                    <h4>📋 Website Digital Certificate (ID Card)</h4>
+                    <p><strong>🏢 Website Name:</strong> ${certificate.website}</p>
+                    <p><strong>🏛️ Company:</strong> ${certificate.company}</p>
+                    <p><strong>✅ Issuing Authority:</strong> ${certificate.issuer}</p>
+                    <p><strong>📅 Valid Period:</strong> ${certificate.validFrom} to ${certificate.validTo}</p>
+                    <p><strong>🔑 Public Key:</strong> ${certificate.publicKey}</p>
+                    <p><strong>🖊️ CA Signature:</strong> ${certificate.signature}</p>
+                </div>
+                <div class="success">
+                    ✅ This is the website's "ID card" containing all important website information!
+                </div>
+            `;
+        }
+
+        function verifyCertificate() {
+            if (!demoData.certificate) {
+                document.getElementById('verificationResult').innerHTML = `
+                    <div class="error">❌ Please generate certificate first</div>
+                `;
+                return;
+            }
+
+            // Simulate verification process
+            const steps = [
+                "🔍 Checking certificate format... ✅ Valid",
+                "📅 Checking validity period... ✅ Not expired",
+                "🏛️ Verifying CA signature... ✅ Signature valid",
+                "🌐 Checking domain match... ✅ Domain matches",
+                "📋 Checking certificate chain... ✅ Trust chain complete"
+            ];
+
+            let html = '<div class="demo-box"><h4>🔍 Certificate Verification Steps:</h4>';
+            steps.forEach((step, index) => {
+                setTimeout(() => {
+                    html += `<p>${step}</p>`;
+                    if (index === steps.length - 1) {
+                        html += '<div class="success">🎉 Certificate verification successful! This is a trusted website!</div>';
+                    }
+                    document.getElementById('verificationResult').innerHTML = html + '</div>';
+                }, index * 500);
+            });
+        }
+
+        // 2. Asymmetric Encryption Demo
+        function generateKeyPair() {
+            // Simplified RSA key pair (actual implementation would be more complex)
+            const keyPair = {
+                public: {
+                    n: "98765432109876543210",  // Modulus
+                    e: "65537"                  // Public exponent
+                },
+                private: {
+                    n: "98765432109876543210",  // Modulus
+                    d: "12345678901234567890"   // Private exponent
+                }
+            };
+
+            demoData.keyPair = keyPair;
+
+            document.getElementById('keyPairDisplay').innerHTML = `
+                <div class="key-display">
+                    <h4>🔓 Public Key (Gold Key - Can be shared)</h4>
+                    <p>Modulus n: ${keyPair.public.n}</p>
+                    <p>Exponent e: ${keyPair.public.e}</p>
+                </div>
+                <div class="key-display">
+                    <h4>🔐 Private Key (Silver Key - Must be secret)</h4>
+                    <p>Modulus n: ${keyPair.private.n}</p>
+                    <p>Exponent d: ${keyPair.private.d}</p>
+                </div>
+                <div class="success">
+                    ✨ Magic key pair generated successfully! Public key to lock, private key to unlock!
+                </div>
+            `;
+        }
+
+        function encryptWithPublicKey() {
+            if (!demoData.keyPair.public) {
+                alert('Please generate key pair first!');
+                return;
+            }
+
+            const message = document.getElementById('secretMessage').value;
+            if (!message) {
+                alert('Please enter a message to encrypt!');
+                return;
+            }
+
+            // Simplified encryption process (actual RSA would be more complex)
+            const encrypted = btoa(message + "_encrypted_with_public_key_" + Date.now());
+            demoData.encryptedData = { original: message, encrypted: encrypted };
+
+            document.getElementById('encryptedMessage').innerHTML = `
+                <h4>🔒 Encryption Process</h4>
+                <p><strong>Original:</strong> "${message}"</p>
+                <p><strong>After encryption with public key:</strong></p>
+                <div class="encrypted-text">${encrypted}</div>
+                <div class="success">
+                    🎉 Message locked with public key (gold key)! Only the private key (silver key) can unlock it!
+                </div>
+            `;
+        }
+
+        function decryptWithPrivateKey() {
+            if (!demoData.encryptedData) {
+                alert('Please encrypt a message first!');
+                return;
+            }
+
+            // Simulate decryption process
+            const decrypted = demoData.encryptedData.original;
+
+            document.getElementById('decryptedMessage').innerHTML = `
+                <h4>🔓 Decryption Process</h4>
+                <p><strong>Encrypted data:</strong></p>
+                <div class="encrypted-text">${demoData.encryptedData.encrypted}</div>
+                <p><strong>After decryption with private key:</strong></p>
+                <div class="success">
+                    "${decrypted}"
+                </div>
+                <div class="success">
+                    🎉 Decryption successful! Only those with the private key (silver key) can see the original text!
+                </div>
+            `;
+        }
+
+        // 3. Symmetric Encryption Demo
+        function generateSymmetricKey() {
+            // Generate random symmetric key
+            const key = Array.from({ length: 16 }, () =>
+                Math.floor(Math.random() * 256).toString(16).padStart(2, '0')
+            ).join('');
+
+            demoData.symmetricKey = key;
+
+            document.getElementById('symmetricKeyDisplay').innerHTML = `
+                <div class="key-display">
+                    <h4>📖 Symmetric Secret Key (Shared by both parties)</h4>
+                    <p><strong>Key:</strong> ${key}</p>
+                </div>
+                <div class="success">
+                    📚 Secret key generated successfully! Now both parties have the same key for fast encryption/decryption!
+                </div>
+            `;
+        }
+
+        function symmetricEncrypt() {
+            if (!demoData.symmetricKey) {
+                alert('Please generate secret key first!');
+                return;
+            }
+
+            const data = document.getElementById('largeData').value;
+            if (!data) {
+                alert('Please enter data to encrypt!');
+                return;
+            }
+
+            // Simplified symmetric encryption (actual AES would be more complex)
+            const encrypted = btoa(data + "_encrypted_with_" + demoData.symmetricKey);
+            demoData.encryptedData = { original: data, encrypted: encrypted };
+
+            document.getElementById('symmetricResult').innerHTML = `
+                <h4>⚡ Symmetric Encryption Result</h4>
+                <p><strong>Original data (${data.length} characters):</strong></p>
+                <div class="demo-box">${data}</div>
+                <p><strong>After encryption:</strong></p>
+                <div class="encrypted-text">${encrypted}</div>
+                <div class="success">
+                    ⚡ Encryption complete! Symmetric encryption is fast and suitable for large data transmission!
+                </div>
+            `;
+        }
+
+        function symmetricDecrypt() {
+            if (!demoData.encryptedData) {
+                alert('Please encrypt some data first!');
+                return;
+            }
+
+            const decrypted = demoData.encryptedData.original;
+
+            document.getElementById('symmetricResult').innerHTML = `
+                <h4>⚡ Symmetric Decryption Result</h4>
+                <p><strong>Encrypted data:</strong></p>
+                <div class="encrypted-text">${demoData.encryptedData.encrypted}</div>
+                <p><strong>After decryption:</strong></p>
+                <div class="success">${decrypted}</div>
+                <div class="success">
+                    ⚡ Decryption complete! Using the same secret key can restore all data!
+                </div>
+            `;
+        }
+
+        // 4. Digital Signature Demo
+        function generateHash() {
+            const data = document.getElementById('dataToHash').value;
+            if (!data) {
+                alert('Please enter data to generate fingerprint!');
+                return;
+            }
+
+            // Simplified hash function (actual SHA-256 would be more complex)
+            let hash = 0;
+            for (let i = 0; i < data.length; i++) {
+                const char = data.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32-bit integer
+            }
+            const hashString = Math.abs(hash).toString(16).padStart(8, '0');
+
+            document.getElementById('hashResult').innerHTML = `
+                <h4>👆 Data Fingerprint Generation</h4>
+                <p><strong>Original data:</strong> "${data}"</p>
+                <p><strong>Data fingerprint (hash value):</strong></p>
+                <div class="key-display">${hashString}</div>
+                <div class="success">
+                    🎯 Fingerprint generated! Even changing one character will completely change the fingerprint!
+                </div>
+                <p><em>Try modifying the data content to see how the fingerprint changes...</em></p>
+            `;
+        }
+
+        function createDigitalSignature() {
+            const data = document.getElementById('dataToHash').value;
+            if (!data) {
+                alert('Please enter data and generate fingerprint first!');
+                return;
+            }
+
+            if (!demoData.keyPair.private) {
+                alert('Please generate key pair first!');
+                return;
+            }
+
+            // Simulate digital signature process
+            const signature = btoa("signature_of_" + data + "_with_private_key");
+
+            document.getElementById('signatureResult').innerHTML = `
+                <h4>🖊️ Digital Signature Creation</h4>
+                <p><strong>1. Generate fingerprint of data</strong></p>
+                <p><strong>2. Sign fingerprint with private key</strong></p>
+                <p><strong>Digital signature:</strong></p>
+                <div class="key-display">${signature}</div>
+                <div class="success">
+                    ✍️ Digital signature created! This proves the data truly comes from the private key owner!
+                </div>
+            `;
+
+            demoData.signature = signature;
+        }
+
+        function verifyDigitalSignature() {
+            if (!demoData.signature) {
+                alert('Please create digital signature first!');
+                return;
+            }
+
+            // Simulate signature verification process
+            document.getElementById('signatureResult').innerHTML += `
+                <h4>✅ Digital Signature Verification</h4>
+                <p><strong>1. Decrypt signature with public key</strong> ✅</p>
+                <p><strong>2. Recalculate data fingerprint</strong> ✅</p>
+                <p><strong>3. Compare both fingerprints</strong> ✅</p>
+                <div class="success">
+                    🎉 Signature verification successful! Data truly comes from expected sender and hasn't been tampered with!
+                </div>
+            `;
+        }
+
+        // 5. Complete SSL Handshake Demo
+        function startHandshake() {
+            const logContainer = document.getElementById('handshakeLog');
+            logContainer.innerHTML = '';
+
+            const steps = [
+                { step: 1, message: "🌐 Browser: Hello! I want to establish secure connection. I support these encryption methods: TLS 1.3, AES-256..." },
+                { step: 2, message: "🏦 Server: Hello! I choose TLS 1.3 and AES-256. Here's my digital certificate..." },
+                { step: 3, message: "🌐 Browser: Let me verify your certificate... ✅ Certificate valid!" },
+                { step: 4, message: "🌐 Browser: I generated a random secret, encrypting it with your public key..." },
+                { step: 5, message: "🏦 Server: Received! I decrypted the secret with my private key. Now we have a shared secret..." },
+                { step: 6, message: "🔐 Both parties: Generating session key based on shared secret..." },
+                { step: 7, message: "✅ SSL handshake complete! Now we can communicate securely!" }
+            ];
+
+            steps.forEach((step, index) => {
+                setTimeout(() => {
+                    logContainer.innerHTML += `
+                        <div style="margin: 10px 0; padding: 5px; background: rgba(0,255,0,0.1);">
+                            Step ${step.step}: ${step.message}
+                        </div>
+                    `;
+                    logContainer.scrollTop = logContainer.scrollHeight;
+
+                    if (index === steps.length - 1) {
+                        demoData.handshakeComplete = true;
+                        demoData.sessionKey = "session_key_" + Date.now();
+                        document.getElementById('sendButton').disabled = false;
+
+                        logContainer.innerHTML += `
+                            <div style="margin: 20px 0; padding: 10px; background: rgba(0,255,0,0.2); border-radius: 5px;">
+                                🎉 Handshake successful! All communications will now be encrypted and protected!
+                            </div>
+                        `;
+                    }
+                }, index * 1000);
+            });
+        }
+
+        function resetHandshake() {
+            demoData.handshakeComplete = false;
+            demoData.sessionKey = null;
+            document.getElementById('sendButton').disabled = true;
+            document.getElementById('handshakeLog').innerHTML = '<div>Waiting for handshake to begin...</div>';
+            document.getElementById('secureResult').innerHTML = '';
+        }
+
+        function sendSecureMessage() {
+            if (!demoData.handshakeComplete) {
+                alert('Please complete SSL handshake first!');
+                return;
+            }
+
+            const message = document.getElementById('secureMessage').value;
+            if (!message) {
+                alert('Please enter a message to send!');
+                return;
+            }
+
+            // Simulate secure transmission
+            const encrypted = btoa(message + "_encrypted_with_session_key_" + demoData.sessionKey);
+
+            document.getElementById('secureResult').innerHTML = `
+                <h4>🔐 Secure Message Transmission</h4>
+                <p><strong>Original message:</strong> "${message}"</p>
+                <p><strong>Encrypted with session key for transmission:</strong></p>
+                <div class="encrypted-text">${encrypted}</div>
+                <p><strong>Server receives and decrypts:</strong> "${message}"</p>
+                <div class="success">
+                    🎉 Message transmitted securely! The entire process is protected by end-to-end encryption!
+                </div>
+            `;
+        }
+
+        // Page initialization after loading
+        document.addEventListener('DOMContentLoaded', function () {
+            // You can add initialization code here
+            console.log('SSL/TLS Demo System ready!');
+        });
+    </script>
+</body>
+
+</html>
